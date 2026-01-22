@@ -1,0 +1,36 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Database
+*.db
+*.sqlite3
+
+# Storage (keep structure, ignore files)
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/heatmaps/*
+!storage/heatmaps/.gitkeep
+storage/reports/*
+!storage/reports/.gitkeep
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
