@@ -1,32 +1,62 @@
 # Deployment & Maintenance Guide
 
-## 🎉 Backend is Live!
-Your backend is now successfully running on Render.
+## 🎉 Backend is Live! (Render)
+For Python/FastAPI backends that handle file uploads and local databases (SQLite), **Render** is the optimal hosting platform. Unlike Vercel, Render provides a persistent server environment rather than shutting down after every request.
 
-### 1. Get Your Backend URL
-1. Go to your **Render Dashboard**.
-2. Click on your `spinevision-api` web service.
-3. Copy the URL from the top left (it looks like `https://spinevision-api.onrender.com`).
-4. **Save this URL**, you will need it for the Frontend.
+### 1. Deploying Backend to Render
+1. Go to your [Render Dashboard](https://dashboard.render.com/).
+2. Click **New** -> **Web Service**.
+3. Connect your GitHub repository (`spinevision-api` or `SPINEVISION-AI`).
+4. **Configuration**:
+   - **Root Directory**: `backend`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+5. Click **Deploy**.
+6. **Save your URL**: Once deployed, copy your URL from the top left (it looks like `https://spinevision-api.onrender.com`). You will need this for the Frontend.
 
 ---
 
-## 🚀 Deploying the Frontend (Vercel)
+## 🚀 Deploying the Frontend (Netlify or Vercel)
 
-Now you need to connect your frontend to this live backend.
+The React/Vite Single Page Application (SPA) must be deployed separately and pointed toward the Render backend.
 
-1. **Push your latest code** to GitHub (already done).
-2. Go to [Vercel](https://vercel.com) and sign in.
-3. Click **"Add New Project"**.
-4. Import your `SPINEVISION-AI` repository.
-5. In the "Configure Project" screen:
-   - **Framework Preset**: Vite
-   - **Root Directory**: `frontend` (Click "Edit" and select the `frontend` folder).
-   - **Environment Variables**:
-     - Key: `VITE_API_URL`
-     - Value: `YOUR_RENDER_BACKEND_URL` (e.g., `https://spinevision-api.onrender.com`)
-       * *Note: Do NOT add a trailing slash `/` at the end.*
+### Option A: Netlify (Recommended)
+Netlify handles React SPA routing perfectly via the included `netlify.toml` file.
+1. Sign into [Netlify](https://www.netlify.com/).
+2. Click **Add new site** -> **Import an existing project** -> GitHub.
+3. Select your repository.
+4. **Configuration**:
+   - **Base directory**: `frontend`
+   - **Build command**: `npm run build`
+   - **Publish directory**: `frontend/dist`
+5. Click **Add environment variables**:
+   - Key: `VITE_API_URL`
+   - Value: `YOUR_RENDER_BACKEND_URL` (e.g., `https://spinevision-api.onrender.com`)
 6. Click **Deploy**.
+
+### Option B: Vercel
+1. Sign into [Vercel](https://vercel.com/dashboard).
+2. Click **Add New...** -> **Project**.
+3. Import your repository.
+4. **Configuration (CRITICAL)**:
+   - **Root Directory**: Click "Edit", type `frontend`, and save.
+   - **Framework Preset**: Vite
+5. Expand **Environment Variables**:
+   - Key: `VITE_API_URL`
+   - Value: `YOUR_RENDER_BACKEND_URL`
+6. Click **Deploy**.
+
+*(Note: The routing logic is protected via the `vercel.json` and `BrowserRouter` setups committed to the codebase).*
+
+---
+
+## 🔒 Important: CORS Policy Connections
+If your Frontend browser console shows a **"CORS policy error"**, your Backend does not recognize your Frontend URL!
+To fix it:
+1. Open `backend/app/main.py`.
+2. Locate the `allow_origins=` list.
+3. Add your exact frontend URL to the list (e.g., `"https://spinevisionai.netlify.app"` or `"https://your-custom.vercel.app"`).
+4. Commit, push, and wait for Render to automatically redeploy the backend!
 
 ---
 
@@ -40,29 +70,15 @@ You are using the **Render Free Tier**. Here is what you need to know and how to
 - **Is it broken?** No! It's just waking up.
 
 ### 2. How to Prevent "Sleeping" (Keep-Alive Strategy)
-To ensure your app is always instant, you can use a free "uptime monitor" to ping your site every 10 minutes.
-
-**Steps:**
-1. Sign up for a free account at [UptimeRobot](https://uptimerobot.com/) or [Cron-job.org](https://cron-job.org/).
+To ensure your app is always instant, use a free "uptime monitor" to ping your site every 10 minutes.
+1. Sign up for a free account at [UptimeRobot](https://uptimerobot.com/).
 2. Create a new **Monitor**.
    - **Monitor Type**: HTTP(s)
-   - **Friendly Name**: SpineVision WakeUp
-   - **URL**: `https://YOUR-APP-NAME.onrender.com/health` (Use your backend URL + `/health`)
-   - **Monitoring Interval**: 10 minutes (or 5 minutes)
-3. Save it.
-4. **Result:** This external service will "visit" your API every 10 minutes, tricking Render into thinking it's active, so it **never goes to sleep**.
+   - **URL**: `https://YOUR-APP-NAME.onrender.com/health`
+   - **Interval**: 10 minutes
+3. Save it. This external service will visit your API every 10 minutes, so it **never goes to sleep**.
 
-### 3. Database Persistence
-- You are using SQLite (`spinevision.db`).
-- **Warning:** On the free tier, if Render restarts your instance (which happens occasionally for maintenance or new deploys), **disk files are reset**.
-- **Current Status:** Your database will reset to empty on every deployment/restart.
-- **Permanent Fix:** For a real production app, you should use an external database like **PostgreSQL** (Render offers a free tier for this too) or **ElephantSQL**.
-  - *For this project/presentation:* It is usually acceptable for data to reset, but if you need persistent data, let me know and I can help you set up a free PostgreSQL database.
-
----
-
-## 🛠️ Maintenance Tips
-- **Logs:** Check Render "Logs" tab if something goes wrong.
-- **Usage:** Free tier has a monthly bandwidth limit (usually plenty for a project).
-- **Cost:** As long as you stay on the "Free" web service plan, it will **never expire** or charge you. It is free forever, not a trial.
-
+### 3. Database Persistence WARNING
+- You are using SQLite (`spinevision.db`) and local upload folders (`storage/uploads`).
+- **Warning:** On the free tier, when a Render instance restarts (due to inactivity or pushing new code to GitHub), **disk files are reset**.
+- **Permanent Fix:** For a real production app, do not rely on local SQLite files. Instead, attach the app to an external PostgreSQL database (Render provides free ones) and use an S3 bucket or Cloudinary for X-ray uploads.
