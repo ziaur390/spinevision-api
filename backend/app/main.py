@@ -111,7 +111,8 @@ app.add_middleware(
         "http://127.0.0.1:3001",
         "http://127.0.0.1:5173",
         "https://spinevision-ai.vercel.app",
-        "https://spinevision-app.vercel.app"
+        "https://spinevision-app.vercel.app",
+        "https://spinevisionai.netlify.app"
     ],
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
