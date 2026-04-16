@@ -35,10 +35,8 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Token expired or invalid - clear and redirect
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            // Dispatch event to AuthContext to handle logout gracefully
+            window.dispatchEvent(new Event('auth:unauthorized'));
         }
         return Promise.reject(error);
     }

@@ -6,10 +6,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.png';
 
 const Login = () => {
     const navigate = useNavigate();
+    const { loginSuccess } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -31,10 +33,15 @@ const Login = () => {
         setError('');
 
         try {
-            await login(formData.email, formData.password);
+            const responseData = await login(formData.email, formData.password);
+            loginSuccess(responseData.access_token, responseData.user);
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+            if (err.code === 'ERR_NETWORK') {
+                setError('Server is currently waking up, please wait a moment and try again.');
+            } else {
+                setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+            }
         } finally {
             setLoading(false);
         }

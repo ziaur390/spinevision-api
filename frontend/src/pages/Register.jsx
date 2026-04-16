@@ -49,7 +49,11 @@ const Register = () => {
             // Redirect to login with success message
             navigate('/login', { state: { registered: true } });
         } catch (err) {
-            setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+            if (err.code === 'ERR_NETWORK') {
+                setError('Server is currently waking up, please wait a moment and try again.');
+            } else {
+                setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }

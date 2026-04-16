@@ -5,12 +5,12 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { logout, getStoredUser } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.png';
 
 const Navbar = () => {
     const navigate = useNavigate();
-    const user = getStoredUser();
+    const { user, logout } = useAuth();
     const [showDropdown, setShowDropdown] = useState(false);
 
     const handleLogout = () => {
