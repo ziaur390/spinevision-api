@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: set = {"png", "jpg", "jpeg", "dcm", "dicom"}
     MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 50 MB
     
+    # Cloudinary Integration (Optional: fallback to local if missing)
+    CLOUDINARY_URL: str | None = None
+    
     # ML Model Configuration
     MODEL_VERSION: str = "v0.1-dummy"
     
