@@ -70,16 +70,8 @@ class StorageService:
     @staticmethod
     async def save_upload(file: UploadFile, user_id: str) -> dict:
         """
-        Save an uploaded X-ray image to storage.
-        
-        Args:
-            file: The uploaded file
-            user_id: ID of the user uploading the file
-            
-        Returns:
-            Dictionary with file info (path, name, size, type)
+        Save an uploaded X-ray image to storage/Cloudinary.
         """
-        # Validate file
         is_valid, error_msg = StorageService.validate_file(file)
         if not is_valid:
             raise HTTPException(
@@ -87,32 +79,41 @@ class StorageService:
                 detail=error_msg
             )
         
-        # Generate unique filename
         unique_filename = StorageService._generate_unique_filename(file.filename or "upload")
-        
-        # Create user-specific subdirectory
         user_upload_dir = settings.UPLOAD_DIR / user_id
         user_upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Full path for the file
         file_path = user_upload_dir / unique_filename
         
         try:
-            # Save file to disk
             with open(file_path, "wb") as buffer:
                 content = await file.read()
                 buffer.write(content)
                 file_size = len(content)
             
+            # Default to local path
+            final_url = str(file_path)
+            
+            # If Cloudinary is available, upload securely
+            if settings.CLOUDINARY_URL:
+                import cloudinary
+                import cloudinary.uploader
+                cloudinary.config(url=settings.CLOUDINARY_URL)
+                
+                result = cloudinary.uploader.upload(
+                    str(file_path),
+                    folder=f"spinevision/uploads/{user_id}"
+                )
+                final_url = result.get("secure_url")
+            
             return {
                 "file_name": file.filename,
-                "file_path": str(file_path),
+                "file_path": final_url,        # The database uses this (permanent URL)
+                "local_path": str(file_path),  # ML Service needs this (local temporary access)
                 "file_size": str(file_size),
                 "file_type": file.content_type or "unknown",
             }
             
         except Exception as e:
-            # Clean up on error
             if file_path.exists():
                 file_path.unlink()
             raise HTTPException(
@@ -122,43 +123,52 @@ class StorageService:
     
     @staticmethod
     def save_heatmap(image_data: bytes, upload_id: str) -> str:
-        """
-        Save a generated heatmap image.
-        
-        Args:
-            image_data: Binary image data
-            upload_id: Associated upload ID
-            
-        Returns:
-            Path to saved heatmap
-        """
+        """Save a generated heatmap image."""
         filename = f"heatmap_{upload_id}.png"
         file_path = settings.HEATMAP_DIR / filename
         
         with open(file_path, "wb") as f:
             f.write(image_data)
         
-        return str(file_path)
+        final_url = str(file_path)
+        
+        if settings.CLOUDINARY_URL:
+            import cloudinary
+            import cloudinary.uploader
+            cloudinary.config(url=settings.CLOUDINARY_URL)
+            
+            result = cloudinary.uploader.upload(
+                str(file_path),
+                folder=f"spinevision/heatmaps"
+            )
+            final_url = result.get("secure_url")
+            
+        return final_url
     
     @staticmethod
     def save_report(report_data: bytes, upload_id: str) -> str:
-        """
-        Save a generated PDF report.
-        
-        Args:
-            report_data: Binary PDF data
-            upload_id: Associated upload ID
-            
-        Returns:
-            Path to saved report
-        """
+        """Save a generated PDF report."""
         filename = f"report_{upload_id}.pdf"
         file_path = settings.REPORT_DIR / filename
         
         with open(file_path, "wb") as f:
             f.write(report_data)
+            
+        final_url = str(file_path)
         
-        return str(file_path)
+        if settings.CLOUDINARY_URL:
+            import cloudinary
+            import cloudinary.uploader
+            cloudinary.config(url=settings.CLOUDINARY_URL)
+            
+            result = cloudinary.uploader.upload(
+                str(file_path),
+                folder=f"spinevision/reports",
+                resource_type="raw"  # Required for PDFs
+            )
+            final_url = result.get("secure_url")
+            
+        return final_url
     
     @staticmethod
     def get_file(file_path: str) -> Optional[bytes]:
@@ -200,6 +210,9 @@ class StorageService:
         Convert a file path to a URL-friendly path.
         Used for serving files via the API.
         """
+        if str(file_path).startswith("http"):
+            return str(file_path)
+            
         # Return relative path from storage directory
         try:
             relative_path = Path(file_path).relative_to(settings.STORAGE_DIR)

@@ -78,7 +78,7 @@ async def upload_xray(
     try:
         # Run AI analysis
         analysis_result = await ml_service.analyze_xray(
-            file_info["file_path"],
+            file_info.get("local_path", file_info["file_path"]),
             upload.id
         )
         
