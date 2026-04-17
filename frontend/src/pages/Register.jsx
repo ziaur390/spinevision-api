@@ -15,6 +15,8 @@ const Register = () => {
         password: '',
         confirmPassword: '',
         full_name: '',
+        hospital_name: '',
+        medical_license: '',
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -44,10 +46,12 @@ const Register = () => {
                 email: formData.email,
                 password: formData.password,
                 full_name: formData.full_name,
+                hospital_name: formData.hospital_name,
+                medical_license: formData.medical_license,
             });
 
             // Redirect to login with success message
-            navigate('/login', { state: { registered: true } });
+            navigate('/login', { state: { registered: true, pendingApproval: true } });
         } catch (err) {
             if (err.code === 'ERR_NETWORK') {
                 setError('Server is currently waking up, please wait a moment and try again.');
@@ -190,6 +194,54 @@ const Register = () => {
                                         onChange={handleChange}
                                         className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
                                         placeholder="doctor@hospital.com"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Hospital Name */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Hospital / Clinic Name
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        name="hospital_name"
+                                        value={formData.hospital_name}
+                                        onChange={handleChange}
+                                        className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                                        placeholder="City Hospital"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Medical License */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Medical License Number
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        name="medical_license"
+                                        value={formData.medical_license}
+                                        onChange={handleChange}
+                                        className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                                        placeholder="MED-123456"
                                         required
                                     />
                                 </div>

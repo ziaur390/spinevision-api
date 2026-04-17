@@ -4,13 +4,14 @@
  */
 
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { login } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.png';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { loginSuccess } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
@@ -128,6 +129,19 @@ const Login = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 {error}
+                            </div>
+                        )}
+
+                        {/* Success / Pending Approval Message */}
+                        {location.state?.pendingApproval && (
+                            <div className="mb-6 bg-teal-50 border border-teal-200 text-teal-800 px-4 py-3 rounded-xl text-sm flex items-center gap-3">
+                                <svg className="w-6 h-6 flex-shrink-0 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <p className="font-semibold">Registration successful!</p>
+                                    <p className="text-teal-600">Your account is pending review by an Administrator. You will be able to log in once your medical license is verified.</p>
+                                </div>
                             </div>
                         )}
 

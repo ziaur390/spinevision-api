@@ -83,6 +83,15 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleApproveUser = async (userId) => {
+        try {
+            await api.patch(`/auth/users/${userId}/approve`);
+            fetchData();
+        } catch (err) {
+            console.error('Failed to approve user:', err);
+        }
+    };
+
     const handleDeleteUser = async (userId) => {
         if (!confirm('Are you sure you want to delete this user?')) return;
         try {
@@ -314,6 +323,7 @@ const AdminDashboard = () => {
                                     <tr>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Medical Info</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Scans</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Last Active</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
@@ -345,27 +355,49 @@ const AdminDashboard = () => {
                                                     <option value="admin">admin</option>
                                                 </select>
                                             </td>
-                                            <td className="px-6 py-4 text-gray-600 font-medium">{u.scan_count}</td>
-                                            <td className="px-6 py-4 text-gray-500 text-sm">{formatTime(u.last_active)}</td>
                                             <td className="px-6 py-4">
+                                                <p className="font-medium text-gray-800 text-sm">{u.hospital_name || 'N/A'}</p>
+                                                <p className="text-xs text-gray-500 text-sm">{u.medical_license || 'N/A'}</p>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600 font-medium">{u.scan_count || 0}</td>
+                                            <td className="px-6 py-4 text-gray-500 text-sm">{u.last_active ? formatTime(u.last_active) : 'Never'}</td>
+                                            <td className="px-6 py-4 flex gap-2 flex-col">
                                                 <button
                                                     onClick={() => handleToggleUserStatus(u.id)}
-                                                    className={`px-3 py-1 rounded-full text-xs font-medium ${u.is_active === 'true' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                    className={`px-3 py-1 rounded-full text-xs font-medium w-fit ${u.is_active === 'true' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                                         }`}
                                                 >
-                                                    {u.is_active === 'true' ? 'Active' : 'Inactive'}
+                                                    {u.is_active === 'true' ? 'Active' : 'Deactivated'}
                                                 </button>
+                                                {u.is_approved !== 'true' && (
+                                                    <span className="px-3 py-1 rounded-full text-xs font-medium w-fit bg-yellow-100 text-yellow-700">
+                                                        Pending
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <button
-                                                    onClick={() => handleDeleteUser(u.id)}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                                                    title="Delete User"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    {u.is_approved !== 'true' && (
+                                                        <button
+                                                            onClick={() => handleApproveUser(u.id)}
+                                                            className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg"
+                                                            title="Approve verification"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteUser(u.id)}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                        title="Delete User"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

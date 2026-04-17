@@ -11,18 +11,15 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 // Create axios instance with default config
 const api = axios.create({
     baseURL: API_BASE_URL,
+    withCredentials: true, // Allow HttpOnly Cookies securely
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Request interceptor - add JWT token to all requests
+// Request interceptor
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
         return config;
     },
     (error) => {
@@ -159,9 +156,8 @@ export const getResult = async (uploadId) => {
 /**
  * Get heatmap image URL
  */
-export const getHeatmapUrl = (uploadId) => {
-    const token = localStorage.getItem('token');
-    return `${API_BASE_URL}/result/${uploadId}/heatmap?token=${token}`;
+export const getHeatmapUrl = (url) => {
+    return url;
 };
 
 /**
