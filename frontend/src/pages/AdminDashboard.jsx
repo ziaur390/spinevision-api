@@ -15,6 +15,12 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [toast, setToast] = useState(null); // { msg, type }
+
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+    };
 
     // Real data states
     const [stats, setStats] = useState({
@@ -83,11 +89,13 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleApproveUser = async (userId) => {
+    const handleApproveUser = async (userId, userEmail) => {
         try {
-            await api.patch(`/auth/users/${userId}/approve`);
+            await api.patch(`/admin/users/${userId}/approve`);
+            showToast(`✅ ${userEmail} approved! They can now log in.`);
             fetchData();
         } catch (err) {
+            showToast(`❌ Failed to approve: ${err.response?.data?.detail || err.message}`, 'error');
             console.error('Failed to approve user:', err);
         }
     };
@@ -124,7 +132,8 @@ const AdminDashboard = () => {
 
     const tabs = [
         { id: 'overview', name: 'Overview', icon: '📊' },
-        { id: 'users', name: 'Users', icon: '👥' },
+        { id: 'pending', name: 'Pending Approvals', icon: '🕐', badge: users.filter(u => u.is_approved !== 'true').length },
+        { id: 'users', name: 'All Users', icon: '👥' },
         { id: 'scans', name: 'Scans', icon: '🔬' },
         { id: 'analytics', name: 'Analytics', icon: '📈' }
     ];
@@ -142,6 +151,14 @@ const AdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-100">
+            {/* Toast Notification */}
+            {toast && (
+                <div className={`fixed top-5 right-5 z-50 px-6 py-4 rounded-2xl shadow-xl text-white font-medium transition-all ${
+                    toast.type === 'error' ? 'bg-red-500' : 'bg-teal-600'
+                }`}>
+                    {toast.msg}
+                </div>
+            )}
             {/* Sidebar */}
             <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white">
                 <div className="p-6 border-b border-gray-800">
@@ -159,13 +176,21 @@ const AdminDashboard = () => {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === tab.id
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-colors ${
+                                activeTab === tab.id
                                     ? 'bg-teal-600 text-white'
                                     : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                }`}
+                            }`}
                         >
-                            <span>{tab.icon}</span>
-                            <span>{tab.name}</span>
+                            <div className="flex items-center gap-3">
+                                <span>{tab.icon}</span>
+                                <span>{tab.name}</span>
+                            </div>
+                            {tab.badge > 0 && (
+                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                    {tab.badge}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </nav>
@@ -310,6 +335,74 @@ const AdminDashboard = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Pending Approvals Tab */}
+                {activeTab === 'pending' && (() => {
+                    const pendingUsers = users.filter(u => u.is_approved !== 'true');
+                    return (
+                        <div className="space-y-4">
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex items-center gap-3">
+                                <span className="text-2xl">⚠️</span>
+                                <p className="text-yellow-800 font-medium">
+                                    {pendingUsers.length === 0
+                                        ? 'No pending approvals. All doctors have been verified!'
+                                        : `${pendingUsers.length} doctor(s) are waiting for your approval before they can log in.`}
+                                </p>
+                            </div>
+
+                            {pendingUsers.length === 0 ? (
+                                <div className="bg-white rounded-2xl p-16 shadow-sm text-center">
+                                    <span className="text-6xl mb-4 block">✅</span>
+                                    <p className="text-gray-500 text-lg">All clear — no pending registrations.</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {pendingUsers.map(u => (
+                                        <div key={u.id} className="bg-white rounded-2xl shadow-sm p-6 flex items-center justify-between gap-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-700 font-bold text-xl flex-shrink-0">
+                                                    {u.full_name?.charAt(0) || u.email.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-800 text-lg">{u.full_name || 'No Name'}</p>
+                                                    <p className="text-gray-500">{u.email}</p>
+                                                    <div className="flex gap-4 mt-1">
+                                                        <span className="text-sm text-gray-600">🏥 <span className="font-medium">{u.hospital_name || 'Not provided'}</span></span>
+                                                        <span className="text-sm text-gray-600">🪪 <span className="font-medium">{u.medical_license || 'Not provided'}</span></span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 mt-1">Registered: {new Date(u.created_at).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3 flex-shrink-0">
+                                                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                                                    Pending
+                                                </span>
+                                                <button
+                                                    onClick={() => handleApproveUser(u.id, u.email)}
+                                                    className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-semibold transition-colors shadow-sm"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    Approve
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteUser(u.id)}
+                                                    className="flex items-center gap-2 px-5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-semibold transition-colors"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* Users Tab */}
                 {activeTab === 'users' && (

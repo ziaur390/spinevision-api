@@ -302,3 +302,21 @@ async def delete_user(
     db.commit()
     
     return {"message": "User deleted successfully"}
+
+
+@router.patch("/users/{user_id}/approve")
+async def approve_user(
+    user_id: str,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Approve a doctor's account so they can log in (Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.is_approved = "true"
+    db.commit()
+    db.refresh(user)
+
+    return {"message": f"{user.email} has been approved and can now log in.", "is_approved": "true"}
