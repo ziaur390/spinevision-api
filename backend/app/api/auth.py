@@ -258,6 +258,7 @@ async def make_first_admin(email: str, db: Session = Depends(get_db)):
     """
     Make a user admin by email.
     Only works if there are no admins in the system (for initial setup).
+    """
     # Temporarily bypassed so developer can reset admin
     # existing_admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
     # if existing_admin:
