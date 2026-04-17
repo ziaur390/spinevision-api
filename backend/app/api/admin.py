@@ -37,6 +37,9 @@ class UserListItem(BaseModel):
     created_at: datetime
     scan_count: int
     last_active: Optional[datetime]
+    hospital_name: Optional[str]
+    medical_license: Optional[str]
+    is_approved: str
 
     class Config:
         from_attributes = True
@@ -129,7 +132,10 @@ async def get_all_users(
             is_active=user.is_active,
             created_at=user.created_at,
             scan_count=scan_count,
-            last_active=last_upload.created_at if last_upload else user.created_at
+            last_active=last_upload.created_at if last_upload else user.created_at,
+            hospital_name=user.hospital_name,
+            medical_license=user.medical_license,
+            is_approved=user.is_approved
         ))
     
     return result
