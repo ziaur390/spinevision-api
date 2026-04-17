@@ -28,11 +28,34 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-   # ... (keep existing lifespan code) ...
     print("\n" + "=" * 50)
     print("🦴 SPINEVISION-AI Backend Starting...")
     print("=" * 50)
     ensure_storage_directories()
+    
+    # Force schema migration on runtime startup where DB_URL is guaranteed
+    from app.database.db import engine
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN hospital_name VARCHAR(255);"))
+            except Exception: pass
+            
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN medical_license VARCHAR(255);"))
+            except Exception: pass
+            
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_approved VARCHAR(5) DEFAULT 'false' NOT NULL;"))
+                # Auto-approve existing users during migration
+                conn.execute(text("UPDATE users SET is_approved = 'true';"))
+            except Exception: pass
+            
+            conn.commit()
+    except Exception as e:
+        print("Migration completely failed:", e)
+        
     init_db()
     print("\n✅ Backend ready!")
     yield
@@ -105,16 +128,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:5173",
-        "https://spinevision-ai.vercel.app",
-        "https://spinevision-app.vercel.app",
-        "https://spinevisionai.netlify.app"
+        "http://localhost:5173"
     ],
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.netlify\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
