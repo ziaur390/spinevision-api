@@ -5,7 +5,7 @@ Handles user registration, login, and token management.
 
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field
@@ -31,6 +31,8 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=6)
     full_name: Optional[str] = None
     role: Optional[UserRole] = UserRole.DOCTOR
+    hospital_name: str
+    medical_license: str
 
 
 class UserResponse(BaseModel):
@@ -40,6 +42,9 @@ class UserResponse(BaseModel):
     role: UserRole
     created_at: datetime
     is_active: str
+    hospital_name: Optional[str]
+    medical_license: Optional[str]
+    is_approved: str
 
     class Config:
         from_attributes = True
@@ -74,7 +79,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
     db: Session = Depends(get_db)
 ) -> User:
     credentials_exception = HTTPException(
@@ -83,6 +88,16 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
+    # Try cookie first, fallback to header
+    token = request.cookies.get("access_token")
+    if not token and "Authorization" in request.headers:
+        auth_header = request.headers["Authorization"]
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            
+    if not token:
+        raise credentials_exception
+        
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
@@ -96,6 +111,8 @@ async def get_current_user(
         raise credentials_exception
     if user.is_active != "true":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated")
+    if user.role != UserRole.ADMIN and user.is_approved != "true":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account pending admin approval.")
     
     return user
 
@@ -112,7 +129,10 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         hashed_password=get_password_hash(user_data.password),
         full_name=user_data.full_name,
         role=user_data.role,
-        is_active="true"
+        hospital_name=user_data.hospital_name,
+        medical_license=user_data.medical_license,
+        is_active="true",
+        is_approved="false" # Admins must approve this
     )
     
     db.add(new_user)
@@ -122,7 +142,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form_data.username).first()
     
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -134,8 +154,20 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     
     if user.is_active != "true":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated")
+        
+    if user.role != UserRole.ADMIN and user.is_approved != "true":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account pending admin approval.")
     
     access_token = create_access_token(data={"sub": user.id, "email": user.email})
+    
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
     
     return Token(
         access_token=access_token,
@@ -151,7 +183,12 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/logout")
-async def logout(current_user: User = Depends(get_current_user)):
+async def logout(response: Response, current_user: User = Depends(get_current_user)):
+    response.delete_cookie(
+        key="access_token",
+        secure=True,
+        samesite="none"
+    )
     return {"message": "Successfully logged out", "user_id": current_user.id}
 
 
@@ -235,7 +272,23 @@ async def make_first_admin(email: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     
     user.role = UserRole.ADMIN
+    user.is_approved = "true" # Auto approve the admin!
     db.commit()
     db.refresh(user)
     return {"message": f"{email} is now an admin!", "user": UserResponse.model_validate(user)}
+
+@router.patch("/users/{user_id}/approve")
+async def approve_user(
+    user_id: str,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Approve a doctor's account (Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.is_approved = "true"
+    db.commit()
+    return {"message": "User approved successfully"}
 

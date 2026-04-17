@@ -60,6 +60,9 @@ class User(Base):
     )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     is_active = Column(String(5), default="true", nullable=False)
+    hospital_name = Column(String(255), nullable=True)
+    medical_license = Column(String(255), nullable=True)
+    is_approved = Column(String(5), default="false", nullable=False)
     
     # Relationship to uploads
     uploads = relationship("Upload", back_populates="user", cascade="all, delete-orphan")
