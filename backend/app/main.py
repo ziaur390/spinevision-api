@@ -36,29 +36,27 @@ async def lifespan(app: FastAPI):
     # Force schema migration on runtime startup where DB_URL is guaranteed
     from app.database.db import engine
     from sqlalchemy import text
-    try:
-        with engine.connect() as conn:
-            try:
-                conn.execute(text("ALTER TABLE users ADD COLUMN hospital_name VARCHAR(255);"))
-            except Exception: pass
-            
-            try:
-                conn.execute(text("ALTER TABLE users ADD COLUMN medical_license VARCHAR(255);"))
-            except Exception: pass
-            
-            try:
-                conn.execute(text("ALTER TABLE users ADD COLUMN is_approved VARCHAR(5) DEFAULT 'false' NOT NULL;"))
-                # Auto-approve existing users during migration
-                conn.execute(text("UPDATE users SET is_approved = 'true';"))
-            except Exception: pass
-            
-            try:
-                conn.execute(text("ALTER TABLE results ADD COLUMN recommendation TEXT;"))
-            except Exception: pass
-            
-            conn.commit()
-    except Exception as e:
-        print("Migration completely failed:", e)
+    
+    migrations = [
+        ("users", "hospital_name", "ALTER TABLE users ADD COLUMN hospital_name VARCHAR(255);"),
+        ("users", "medical_license", "ALTER TABLE users ADD COLUMN medical_license VARCHAR(255);"),
+        ("users", "is_approved", "ALTER TABLE users ADD COLUMN is_approved VARCHAR(5) DEFAULT 'false' NOT NULL;"),
+        ("results", "recommendation", "ALTER TABLE results ADD COLUMN recommendation TEXT;"),
+    ]
+    
+    for table, col, sql in migrations:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text(sql))
+                if table == "users" and col == "is_approved":
+                    conn.execute(text("UPDATE users SET is_approved = 'true';"))
+                conn.commit()
+                print(f"  ✓ Migration: added '{col}' to '{table}'")
+        except Exception as e:
+            if "already exists" in str(e) or "duplicate column" in str(e).lower():
+                print(f"  ⏭ Column '{col}' already exists in '{table}', skipping.")
+            else:
+                print(f"  ⚠ Migration '{col}' on '{table}': {e}")
         
     init_db()
     print("\n✅ Backend ready!")
