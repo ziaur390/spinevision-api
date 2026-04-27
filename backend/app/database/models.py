@@ -132,6 +132,7 @@ class Result(Base):
     confidence_score = Column(String(10), nullable=True)  # Overall confidence
     heatmap_path = Column(String(500), nullable=True)
     report_path = Column(String(500), nullable=True)
+    recommendation = Column(Text, nullable=True)  # Gemini-generated clinical recommendation
     processed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationship

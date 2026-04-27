@@ -299,44 +299,57 @@ class ReportService:
         elements.append(Spacer(1, 20))
     
     def _create_recommendations_section(self, elements: list, result: Dict):
-        """Create recommendations based on the analysis."""
+        """Create recommendations section using Gemini-generated AI recommendation."""
         
         elements.append(Paragraph(
-            "Recommendations",
+            "AI Clinical Recommendation",
             self.styles['SectionHeader']
         ))
         
-        classification = result.get('overall', '')
+        recommendation = result.get('recommendation', '')
         
-        recommendations = []
-        
-        if 'High' in classification:
-            recommendations = [
-                "Immediate consultation with an orthopedic specialist or spine surgeon is recommended.",
-                "Additional imaging studies (MRI, CT) may be warranted for detailed assessment.",
-                "Clinical correlation with patient symptoms and physical examination is essential.",
-                "Consider referral for comprehensive spine evaluation."
-            ]
-        elif 'Moderate' in classification or 'Possibly' in classification:
-            recommendations = [
-                "Follow-up consultation with the treating physician is recommended.",
-                "Consider additional imaging if symptoms persist or worsen.",
-                "Monitor patient for any progression of symptoms.",
-                "Physical therapy evaluation may be beneficial."
-            ]
+        if recommendation:
+            # Split the recommendation into paragraphs and render each
+            paragraphs = recommendation.strip().split('\n')
+            for para in paragraphs:
+                para = para.strip()
+                if para:
+                    elements.append(Paragraph(
+                        para,
+                        self.styles['Finding']
+                    ))
+                    elements.append(Spacer(1, 4))
         else:
-            recommendations = [
-                "Routine follow-up as clinically indicated.",
-                "No immediate intervention appears necessary based on this analysis.",
-                "Continue standard care protocols.",
-                "Patient education on spine health and posture is recommended."
-            ]
-        
-        for i, rec in enumerate(recommendations, 1):
-            elements.append(Paragraph(
-                f"{i}. {rec}",
-                self.styles['Finding']
-            ))
+            # Fallback if no recommendation was generated
+            classification = result.get('overall', '')
+            
+            if 'High' in classification:
+                fallback_recs = [
+                    "Immediate consultation with an orthopedic specialist or spine surgeon is recommended.",
+                    "Additional imaging studies (MRI, CT) may be warranted for detailed assessment.",
+                    "Clinical correlation with patient symptoms and physical examination is essential.",
+                    "Consider referral for comprehensive spine evaluation."
+                ]
+            elif 'Moderate' in classification or 'Possibly' in classification:
+                fallback_recs = [
+                    "Follow-up consultation with the treating physician is recommended.",
+                    "Consider additional imaging if symptoms persist or worsen.",
+                    "Monitor patient for any progression of symptoms.",
+                    "Physical therapy evaluation may be beneficial."
+                ]
+            else:
+                fallback_recs = [
+                    "Routine follow-up as clinically indicated.",
+                    "No immediate intervention appears necessary based on this analysis.",
+                    "Continue standard care protocols.",
+                    "Patient education on spine health and posture is recommended."
+                ]
+            
+            for i, rec in enumerate(fallback_recs, 1):
+                elements.append(Paragraph(
+                    f"{i}. {rec}",
+                    self.styles['Finding']
+                ))
     
     def _create_footer(self, elements: list, result: Dict):
         """Create the report footer with disclaimers."""

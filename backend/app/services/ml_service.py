@@ -13,6 +13,8 @@ from PIL import Image, ImageDraw, ImageFilter
 import numpy as np
 import httpx
 
+from app.services.gemini_service import gemini_service
+
 from app.config import get_settings
 
 settings = get_settings()
@@ -158,6 +160,13 @@ class MLService:
                 
             predictions.sort(key=lambda x: x["probability"], reverse=True)
             
+            # 6. Generate AI Recommendation via Gemini
+            recommendation = await gemini_service.generate_recommendation(
+                overall_classification=overall,
+                confidence_score=confidence,
+                predictions=predictions,
+            )
+            
             return {
                 "overall": overall,
                 "model_version": self.model_version,
@@ -165,6 +174,7 @@ class MLService:
                 "heatmap_path": heatmap_path,
                 "confidence_score": round(confidence, 2),
                 "processed_at": datetime.utcnow().isoformat(),
+                "recommendation": recommendation,
             }
             
         except Exception as e:

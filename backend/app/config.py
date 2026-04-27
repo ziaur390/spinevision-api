@@ -54,7 +54,10 @@ class Settings(BaseSettings):
     CLOUDINARY_URL: str | None = None
     
     # ML Model Configuration
-    MODEL_VERSION: str = "v0.1-dummy"
+    MODEL_VERSION: str = "v2.0-densenet-yolo"
+    
+    # Gemini API Configuration
+    GEMINI_API_KEY: str | None = None
     
     class Config:
         env_file = ".env"

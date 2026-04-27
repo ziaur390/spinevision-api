@@ -33,6 +33,7 @@ class ResultResponse(BaseModel):
     overall_classification: str
     confidence_score: Optional[float]
     predictions: List[dict]
+    recommendation: Optional[str] = None
     heatmap_url: Optional[str]
     report_url: Optional[str]
     processed_at: datetime
@@ -92,6 +93,7 @@ async def get_result(
             overall_classification=result.overall_classification,
             confidence_score=float(result.confidence_score) if result.confidence_score else None,
             predictions=result.predictions,
+            recommendation=result.recommendation,
             heatmap_url=storage_service.get_file_url(result.heatmap_path) if result.heatmap_path else None,
             report_url=storage_service.get_file_url(result.report_path) if result.report_path else None,
             processed_at=result.processed_at

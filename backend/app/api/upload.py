@@ -39,6 +39,7 @@ class UploadWithResultResponse(BaseModel):
     confidence_score: Optional[float] = None
     model_version: Optional[str] = None
     predictions: Optional[list] = None
+    recommendation: Optional[str] = None
     heatmap_url: Optional[str] = None
     report_url: Optional[str] = None
     processed_at: Optional[datetime] = None
@@ -97,6 +98,7 @@ async def upload_xray(
             predictions=analysis_result["predictions"],
             confidence_score=str(analysis_result["confidence_score"]),
             heatmap_path=analysis_result.get("heatmap_path", ""),
+            recommendation=analysis_result.get("recommendation", ""),
             report_path=report_path
         )
         
@@ -113,6 +115,7 @@ async def upload_xray(
             confidence_score=float(result.confidence_score) if result.confidence_score else None,
             model_version=result.model_version,
             predictions=result.predictions,
+            recommendation=result.recommendation,
             heatmap_url=storage_service.get_file_url(result.heatmap_path) if result.heatmap_path else None,
             report_url=storage_service.get_file_url(result.report_path) if result.report_path else None,
             processed_at=result.processed_at
