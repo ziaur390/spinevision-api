@@ -41,3 +41,17 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# Hugging Face Space (deployed separately, contains large .pt model files)
+hf_space/
+
+# AI Model files (large .pt files)
+ai models/
+*.pt
+
+# Test scripts
+test_*.py
+
+# Temp directories
+temp_api_repo/
+storage/
